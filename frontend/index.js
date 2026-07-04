@@ -14120,7 +14120,7 @@ const nP = Sn(rP);
                     b.jsx("th", {
                       className:
                         "p-5 font-semibold tracking-wider uppercase hidden md:table-cell",
-                      children: "Volume",
+                      children: "Payload Volume",
                     }),
                   ],
                 }),
@@ -14350,7 +14350,7 @@ const nP = Sn(rP);
               children: [
                 b.jsx(pc, {
                   icon: b.jsx(zl, { size: 14 }),
-                  label: "Net Volume",
+                  label: "Net Payload Volume",
                   value: _r(e.volumeValue, n),
                 }),
                 b.jsx(pc, {
@@ -25228,7 +25228,7 @@ function BL(e) {
   return { format: d, formatPrefix: v };
 }
 var Nc, _y, fk;
-$L({ thousands: ",", grouping: [3], currency: ["$", ""] });
+$L({ thousands: ",", grouping: [3], currency: ["", ""] });
 function $L(e) {
   return ((Nc = BL(e)), (_y = Nc.format), (fk = Nc.formatPrefix), Nc);
 }
@@ -28315,11 +28315,12 @@ var bj = {
     if (e != null) return Qt(e.outerRadius, t, t * 0.8);
   }),
   PI = (e) => {
-    if (e == null) return [0, 0];
-    var { startAngle: t, endAngle: r } = e;
-    return [t, r];
-  },
-  rN = B([xd], PI);
+    const u = Number(e) || 0;
+    const c = u < 0 ? "-" : "";
+    const absValue = Math.abs(u);
+    return absValue >= 1024.0
+      ? `${c}${(absValue / 1024.0).toFixed(2)} GB`
+      : `${c}${absValue.toFixed(2)} MB`;
 B([Vy, rN], gd);
 var nN = B([Zy, eN, tN], (e, t, r) => {
   if (!(e == null || t == null || r == null)) return [t, r];
@@ -40050,7 +40051,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                           b.jsx("div", {
                             className:
                               "text-[9px] text-slate-400 dark:text-white/40 uppercase tracking-widest mb-1",
-                            children: "Cumulative Volume",
+                            children: "Cumulative Payload Volume",
                           }),
                           b.jsx("div", {
                             className:
@@ -41145,7 +41146,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
         const d = ["Date", "Transfer Ref", "Type", "Payload Size", "Status"],
           v = u.history.map((S) => {
             const j = S.isSpike ? "Flagged" : "Verified",
-              O = S.amount > 5 ? "High Volume Transfer" : "Standard Payload",
+              O = S.amount > 5 ? "High Payload Transfer" : "Standard Payload",
               E = `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
             return [S.date, E, O, S.amount.toFixed(2), j].join(",");
           }),
@@ -41360,7 +41361,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                       children: [
                         b.jsx("div", {
                           className: "text-sm text-slate-500 mb-1",
-                          children: "Total Volume",
+                          children: "Total Payload Volume",
                         }),
                         b.jsx("div", {
                           className:
@@ -41440,7 +41441,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                                 b.jsx("th", {
                                   className:
                                     "p-5 font-semibold tracking-wider text-xs uppercase text-right",
-                                  children: "Amount",
+                                  children: "Payload (MB)",
                                 }),
                                 b.jsx("th", {
                                   className:
@@ -41494,7 +41495,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                                             className: `w-1.5 h-1.5 rounded-full ${d.amount > 5 ? "bg-indigo-500" : "bg-emerald-500"}`,
                                           }),
                                           d.amount > 5
-                                            ? "High Volume Transfer"
+                                            ? "High Payload Transfer"
                                             : "Standard Payload",
                                         ],
                                       }),
@@ -41617,7 +41618,9 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
       [isDragOver, setIsDragOver] = x.useState(!1),
       [isUploading, setIsUploading] = x.useState(!1),
       fileInputRef = x.useRef(null),
-      dashboardRef = x.useRef(null);
+      dashboardRef = x.useRef(null),
+      refreshNetworkGraph =
+        typeof forceRefresh == "function" ? forceRefresh : () => {};
     const uploadCSVFile = async (file) => {
       if (!file.name.endsWith(".csv")) {
         alert("Only CSV file logs are supported.");
@@ -41655,7 +41658,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
             return [...newAlerts, ...prev].slice(0, 100);
           });
         }
-        forceRefresh();
+        refreshNetworkGraph();
         setTimeout(() => {
           alert(
             `Forensic Audit complete! Parsed ${data.rows_parsed} rows, flagged ${data.anomalies ? data.anomalies.length : 0} threats.`,
@@ -41877,7 +41880,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                         b.jsx("p", {
                           className:
                             "text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider",
-                          children: "Total Volume",
+                          children: "Total Payload Volume",
                         }),
                         b.jsx("p", {
                           className:
@@ -42333,7 +42336,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                             }),
                             b.jsx("th", {
                               className: "p-3 font-semibold text-right",
-                              children: "Volume",
+                              children: "Payload Volume",
                             }),
                           ],
                         }),
@@ -42353,13 +42356,13 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                                       type: O.riskScore > 90 ? "dos_attack" : "ai_anomaly_flagged",
                                       title: O.riskScore > 90 ? "Critical Threat Alert" : "High Risk Anomaly",
                                       time: "ACTIVE FEED",
-                                      desc: `Entity: ${O.name} (${O.type}) | Vol: ${O.volume} | IP: ${O.ipAddress}`,
+                                      desc: `Entity: ${O.name} (${O.type}) | Payload: ${O.volume} | IP: ${O.ipAddress}`,
                                       risk_score: O.riskScore,
                                       mitigation_status: O.riskScore > 90 ? "Mitigated (FW Block)" : "Under Review",
                                       details: {
                                         "Entity Name": O.name,
                                         "Type": O.type,
-                                        "Volume": O.volume,
+                                        "Payload": O.volume,
                                         "IP Address": O.ipAddress,
                                         "Last Active": O.lastActive,
                                         "Connections": O.connections.join(", "),

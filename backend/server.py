@@ -116,6 +116,48 @@ async def get_redis_client():
             logging.error(f"Failed to initialize Redis client: {e}")
     return redis_pub_client
 
+
+def _normalize_csv_key(key: str) -> str:
+    return str(key).strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def _coalesce_row_value(row: dict, *keys: str, default: str = "") -> str:
+    normalized_row = {}
+    for raw_key, raw_value in row.items():
+        if raw_key is None:
+            continue
+        normalized_row[_normalize_csv_key(raw_key)] = raw_value
+
+    for key in keys:
+        candidate = normalized_row.get(_normalize_csv_key(key))
+        if candidate is not None:
+            candidate_text = str(candidate).strip()
+            if candidate_text:
+                return candidate_text
+    return default
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        value_text = str(value).strip().replace(",", "")
+        if not value_text:
+            return default
+        return float(value_text)
+    except (TypeError, ValueError):
+        return default
+
+
+def _upsert_graph_link(source: str, target: str, link_payload: Dict[str, Any]) -> Dict[str, Any]:
+    for existing_link in graph_state["links"]:
+        if existing_link.get("source") == source and existing_link.get("target") == target:
+            existing_link.update(link_payload)
+            return existing_link
+
+    graph_state["links"].append(link_payload)
+    return link_payload
+
 # Heuristics Evaluator Class
 class RiskEvaluator:
     def __init__(self):
@@ -625,7 +667,7 @@ async def audit_csv_log(file: UploadFile = File(...)):
         
         anomalies = []
         rows_parsed = 0
-        global recent_transactions
+        global graph_state, recent_transactions
         
         # Track sliding request rates within a 10s window per source_ip
         csv_dos_tracker = {}
@@ -648,31 +690,30 @@ async def audit_csv_log(file: UploadFile = File(...)):
         for row in reader:
             rows_parsed += 1
             
-            # Resolve keys from row case-insensitively and interchangeably
-            def get_val(keys_list, default=""):
-                for k in keys_list:
-                    if k in row and row[k] is not None:
-                        return str(row[k])
-                    for rk in row.keys():
-                        if rk.strip().lower() == k.lower():
-                            return str(row[rk])
-                return default
-
-            session_id = get_val(["session_id", "id", "transaction_id"], f"sess_batch_{random.randint(1000, 9999)}").strip()
-            source_ip = get_val(["source_ip", "user_id", "source"]).strip()
-            target_ip = get_val(["target_ip", "transaction_id", "target"]).strip()
+            session_id = _coalesce_row_value(
+                row,
+                "session_id",
+                "id",
+                "transaction_id",
+                default=f"sess_batch_{random.randint(1000, 9999)}",
+            )
+            source_ip = _coalesce_row_value(row, "source_ip", "user_id", "source", "src")
+            target_ip = _coalesce_row_value(row, "target_ip", "transaction_id", "target", "dst")
             
             if not source_ip or not target_ip:
                 continue
                 
-            payload_size_val = get_val(["payload_size_mb", "amount"], "0.0").strip()
-            try:
-                payload_size_mb = float(payload_size_val)
-            except ValueError:
-                payload_size_mb = 0.0
-                
-            request_type = get_val(["request_type", "protocol"], "HTTPS").strip()
-            timestamp = get_val(["timestamp", "time"], datetime.utcnow().isoformat() + "Z").strip()
+            payload_size_mb = _safe_float(
+                _coalesce_row_value(row, "payload_size_mb", "amount", "payload", default="0.0"),
+                default=0.0,
+            )
+            request_type = _coalesce_row_value(row, "request_type", "protocol", default="HTTPS")
+            timestamp = _coalesce_row_value(
+                row,
+                "timestamp",
+                "time",
+                default=datetime.utcnow().isoformat() + "Z",
+            )
             
             proto_upper = request_type.upper()
             if proto_upper == "HTTPS":
@@ -701,7 +742,7 @@ async def audit_csv_log(file: UploadFile = File(...)):
             if proto_upper in ["UDP", "RAW_UDP"]:
                 h_score += 20
                 rules.append("UDP Protocol Abuse")
-            if len(csv_dos_tracker[source_ip]) > 10:
+            if len(csv_dos_tracker[source_ip]) > 20:
                 h_score += 65
                 rules.append("DoS Velocity Spike")
                 
@@ -751,22 +792,17 @@ async def audit_csv_log(file: UploadFile = File(...)):
                 
             graph_state["nodes"] = list(existing_nodes.values())
             
-            found_link = False
-            for l in graph_state["links"]:
-                if l["source"] == source_ip and l["target"] == target_ip:
-                    l["riskScore"] = final_score
-                    l["payload_size_mb"] = payload_size_mb
-                    l["throughput_mb_s"] = 0.0
-                    found_link = True
-                    break
-            if not found_link:
-                graph_state["links"].append({
+            _upsert_graph_link(
+                source_ip,
+                target_ip,
+                {
                     "source": source_ip,
                     "target": target_ip,
                     "riskScore": final_score,
                     "payload_size_mb": payload_size_mb,
-                    "throughput_mb_s": 0.0
-                })
+                    "throughput_mb_s": 0.0,
+                },
+            )
                 
             if prediction == -1 or final_score > 75:
                 anomaly_item = {
@@ -1025,4 +1061,4 @@ async def startup_event():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("server:app", host=HOST, port=PORT, reload=True)
+    uvicorn.run("server:app", host=HOST, port=PORT, reload=False)
