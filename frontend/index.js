@@ -28315,12 +28315,11 @@ var bj = {
     if (e != null) return Qt(e.outerRadius, t, t * 0.8);
   }),
   PI = (e) => {
-    const u = Number(e) || 0;
-    const c = u < 0 ? "-" : "";
-    const absValue = Math.abs(u);
-    return absValue >= 1024.0
-      ? `${c}${(absValue / 1024.0).toFixed(2)} GB`
-      : `${c}${absValue.toFixed(2)} MB`;
+    if (e == null) return [0, 0];
+    var { startAngle: t, endAngle: r } = e;
+    return [t, r];
+  },
+  rN = B([xd], PI);
 B([Vy, rN], gd);
 var nN = B([Zy, eN, tN], (e, t, r) => {
   if (!(e == null || t == null || r == null)) return [t, r];
@@ -42839,28 +42838,20 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
       };
     x.useEffect(() => {
       if (formRef.current) {
-        const logo = formRef.current.querySelector(".inline-flex");
-        const title = formRef.current.querySelector("h1");
-        const subtitle = formRef.current.querySelector("p");
         const formGroups = formRef.current.querySelectorAll("form > div");
         const button = formRef.current.querySelector("button");
         const footer = formRef.current.querySelector(".mt-8");
-        gsap.set([logo, title, subtitle, formGroups, button, footer], {
-          opacity: 0,
-          y: 25,
-        });
+        const animatedNodes = [
+          ...Array.from(formGroups),
+          button,
+          footer,
+        ].filter(Boolean);
+        gsap.set(animatedNodes, { opacity: 0, y: 25 });
         gsap.set(formRef.current, { opacity: 0, scale: 0.95 });
         const tl = gsap.timeline({
           defaults: { ease: "power3.out", duration: 0.7 },
         });
         tl.to(formRef.current, { opacity: 1, scale: 1, duration: 0.8 })
-          .to(
-            logo,
-            { opacity: 1, y: 0, scale: 1, duration: 1.0, ease: "back.out(2)" },
-            "-=0.6",
-          )
-          .to(title, { opacity: 1, y: 0 }, "-=0.7")
-          .to(subtitle, { opacity: 1, y: 0 }, "-=0.6")
           .to(formGroups, { opacity: 1, y: 0, stagger: 0.1 }, "-=0.5")
           .to(button, { opacity: 1, y: 0, ease: "back.out(1.5)" }, "-=0.4")
           .to(footer, { opacity: 1, y: 0 }, "-=0.3");
@@ -42884,11 +42875,11 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
           className: "relative z-10 w-full max-w-md p-8",
           children: [
             b.jsxs("div", {
-              className: "text-center mb-10",
+              className: "text-center mb-8",
               children: [
                 b.jsx("div", {
                   className:
-                    "inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mb-6 shadow-2xl shadow-indigo-500/20",
+                    "inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mb-5 shadow-2xl shadow-indigo-500/20",
                   children: b.jsx(Up, {
                     size: 32,
                     className: "text-indigo-500",
@@ -42896,13 +42887,8 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                 }),
                 b.jsx("h1", {
                   className:
-                    "text-3xl font-black tracking-tight mb-2 text-white",
+                    "text-3xl font-black tracking-tight text-white",
                   children: "AEGIS",
-                }),
-                b.jsx("p", {
-                  className:
-                    "text-slate-300 font-medium text-sm tracking-wide uppercase",
-                  children: "Restricted Access // Authorized Personnel Only",
                 }),
               ],
             }),
@@ -43000,7 +42986,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
             }),
             b.jsxs("div", {
               className:
-                "mt-8 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-slate-300 font-medium",
+                "mt-8 pt-6 border-t border-white/10 flex items-center justify-start text-xs text-slate-300 font-medium",
               children: [
                 b.jsxs("div", {
                   className: "flex items-center gap-2",
@@ -43008,10 +42994,6 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                     b.jsx(bn, { size: 14, className: "text-emerald-400" }),
                     b.jsx("span", { children: "Secure Connection" }),
                   ],
-                }),
-                b.jsx("span", {
-                  className: "font-mono text-slate-400",
-                  children: "v2.4.0-RC3",
                 }),
               ],
             }),
@@ -43408,75 +43390,93 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
       [N, P] = x.useState(!1),
       [I, Y] = x.useState(!1),
       [te, ee] = x.useState(!1),
-      H = l.find((ne) => ne.id === c),
-      ue = (ne) =>
-        Array.from({ length: 20 }).map((z, X) => {
-          let re = Math.random() * 4e6;
-          return (
-            Math.random() > 0.85 && (re += Math.random() * 8e6 + 6e6),
-            ne || (re = re * 0.2),
-            {
-              date: `T-${20 - X}`,
-              amount: parseFloat(re.toFixed(2)),
-              isSpike: re > 1e7,
-            }
-          );
-        });
-    (x.useEffect(() => {
+      H = l.find((ne) => ne.id === c);
+    x.useEffect(() => {
       const ne = async () => {
         try {
-          const ie = await (await fetch("/api/graph")).json(),
-            { nodes: ye, links: we } = ie,
+          const [graphResponse, transactionsResponse] = await Promise.all([
+              fetch("/api/graph"),
+              fetch("/api/transactions"),
+            ]),
+            graphData = await graphResponse.json(),
+            transactionData = transactionsResponse.ok
+              ? await transactionsResponse.json()
+              : [],
+            { nodes: ye, links: we } = graphData,
             me = {};
           setLinksState(we);
           const it = (G) => {
-              me[G] ||
-                (me[G] = { totalVol: 0, history: [], neighbors: new Set() });
-            };
-          (we.forEach((G) => {
-            (it(G.source),
-              it(G.target),
-              (me[G.source].totalVol += G.payload_size_mb || G.amount || 10),
-              (me[G.target].totalVol += G.payload_size_mb || G.amount || 10),
-              me[G.source].neighbors.add(G.target),
-              me[G.target].neighbors.add(G.source));
-            const xe = {
-              date: `Step ${G.step || 1}`,
-              amount: parseFloat(
-                (G.payload_size_mb || G.amount || 10).toFixed(2),
-              ),
+            me[G] ||
+              (me[G] = { totalVol: 0, history: [], neighbors: new Set() });
+          };
+          const parseOrder = (value, fallback) => {
+            if (!value) return fallback;
+            const isoValue = Date.parse(String(value).replace("Z", "+00:00"));
+            if (!Number.isNaN(isoValue)) return isoValue;
+            const parts = String(value).split(":");
+            if (parts.length >= 3) {
+              const hours = Number(parts[0]);
+              const minutes = Number(parts[1]);
+              const seconds = Number(parts[2]);
+              if ([hours, minutes, seconds].every((n) => !Number.isNaN(n))) {
+                return hours * 3600 + minutes * 60 + seconds;
+              }
+            }
+            return fallback;
+          };
+          we.forEach((G, index) => {
+            it(G.source);
+            it(G.target);
+            const payloadValue = G.payload_size_mb || G.amount || 10;
+            me[G.source].totalVol += payloadValue;
+            me[G.target].totalVol += payloadValue;
+            me[G.source].neighbors.add(G.target);
+            me[G.target].neighbors.add(G.source);
+            const historyPoint = {
+              date: G.timestamp || `Step ${index + 1}`,
+              amount: parseFloat(Number(payloadValue).toFixed(2)),
               isSpike: G.fraud || G.riskScore > 70,
+              sortKey: parseOrder(G.timestamp, index),
             };
-            (me[G.source].history.push(xe), me[G.target].history.push(xe));
-          }),
-            u((G) => {
-              const xe = new Map(G.map((Z) => [Z.id, { x: Z.x, y: Z.y }])),
-                Ee = new Map(G.map((Z) => [Z.id, Z.history]));
-              return ye.map((Z) => {
-                const lt = me[Z.id] || {
-                    totalVol: 0,
-                    history: [],
-                    neighbors: new Set(),
-                  },
-                  Ne = Ee.get(Z.id) || [],
-                  Et = lt.history,
-                  bt = new Map();
-                [...Ne, ...Et].forEach((fa) => {
-                  bt.set(fa.date, fa);
-                });
-                const on = Array.from(bt.values())
-                    .sort((fa, $t) => {
-                      const Rd = parseInt(fa.date.replace("Step ", ""));
-                      return parseInt($t.date.replace("Step ", "")) - Rd;
-                    })
-                    .slice(0, 20),
-                  no =
-                    Z.id
-                      .split("")
-                      .reduce((fa, $t) => fa + $t.charCodeAt(0), 0) % 255,
-                  ca = xe.get(Z.id),
-                  ao = ca ? ca.x : Math.random() * 1600,
-                  zd = ca ? ca.y : Math.random() * 900;
+            me[G.source].history.push(historyPoint);
+            me[G.target].history.push(historyPoint);
+          });
+          transactionData.forEach((tx, index) => {
+            if (!tx) return;
+            const payloadValue = tx.payload_size_mb || tx.amount || 10;
+            const historyPoint = {
+              date: tx.timestamp || `Tx ${index + 1}`,
+              amount: parseFloat(Number(payloadValue).toFixed(2)),
+              isSpike: tx.status === "Flagged" || tx.riskScore > 70,
+              sortKey: parseOrder(tx.timestamp, index + we.length),
+            };
+            if (tx.source) {
+              it(tx.source);
+              me[tx.source].totalVol += payloadValue;
+              me[tx.source].history.push(historyPoint);
+              if (tx.target) me[tx.source].neighbors.add(tx.target);
+            }
+            if (tx.target) {
+              it(tx.target);
+              me[tx.target].totalVol += payloadValue;
+              me[tx.target].history.push(historyPoint);
+              if (tx.source) me[tx.target].neighbors.add(tx.source);
+            }
+          });
+          u((G) => {
+            const xe = new Map(G.map((Z) => [Z.id, { x: Z.x, y: Z.y }]));
+            return ye.map((Z) => {
+              const lt = me[Z.id] || {
+                  totalVol: 0,
+                  history: [],
+                  neighbors: new Set(),
+                },
+                on = [...lt.history]
+                  .sort((fa, $t) => $t.sortKey - fa.sortKey)
+                  .slice(0, 20),
+                ca = xe.get(Z.id),
+                ao = ca ? ca.x : Math.random() * 1600,
+                zd = ca ? ca.y : Math.random() * 900;
 
                 const isThreat =
                   Z.mlClass === "dos_attack" ||
@@ -43523,10 +43523,10 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
                   y: zd,
                   isRingMember: isThreat,
                   connections: Array.from(lt.neighbors),
-                  history: on.length > 0 ? on : ue(Z.riskScore > 50),
+                  history: on,
                 };
               });
-            }));
+          });
         } catch (X) {
           console.error("Failed to fetch backend data:", X);
         }
@@ -43601,7 +43601,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
       return () => {
         if (ws) ws.close();
       };
-    }, [k.currency, refreshTrigger]),
+    }, [k.currency, refreshTrigger]);
       x.useEffect(() => {
         (k.darkMode
           ? document.documentElement.classList.add("dark")
@@ -43609,7 +43609,7 @@ const NX = ({ accounts: e, selectedId: t, currency: r }) => {
           k.reducedMotion
             ? document.documentElement.classList.add("reduce-motion")
             : document.documentElement.classList.remove("reduce-motion"));
-      }, [k.darkMode, k.reducedMotion]));
+      }, [k.darkMode, k.reducedMotion]);
     const le = () => {
         f(null);
       },
