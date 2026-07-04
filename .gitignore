@@ -1,0 +1,48 @@
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+bin/
+lib/
+include/
+pip-selfcheck.json
+
+# Python caches and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# JavaScript dependencies
+node_modules/
+
+# Local configuration files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Agentic scratch / configuration folders
+.antigravity*
+.gemini*
+.agents/
+AGENTS.md
+SKILL.md
+skills.json

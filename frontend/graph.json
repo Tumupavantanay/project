@@ -1,0 +1,25 @@
+{
+  "nodes": [
+    { "id": "M_ShadowBroker", "riskScore": 98, "mlClass": "FRAUD", "graphScore": 9 },
+    { "id": "M_GlobalCrypto", "riskScore": 85, "mlClass": "AT_RISK", "graphScore": 5 },
+    { "id": "M_SecurePay", "riskScore": 12, "mlClass": "SAFE", "graphScore": 1 },
+    { "id": "M_EStoreLite", "riskScore": 25, "mlClass": "SAFE", "graphScore": 2 },
+    { "id": "C_AlphaUser", "riskScore": 15, "mlClass": "SAFE", "graphScore": 1 },
+    { "id": "C_BetaUser", "riskScore": 82, "mlClass": "AT_RISK", "graphScore": 4 },
+    { "id": "C_GammaFraudster", "riskScore": 95, "mlClass": "FRAUD", "graphScore": 8 },
+    { "id": "C_DeltaUser", "riskScore": 40, "mlClass": "SAFE", "graphScore": 2 },
+    { "id": "C_EpsilonUser", "riskScore": 10, "mlClass": "SAFE", "graphScore": 1 },
+    { "id": "C_ZetaUser", "riskScore": 78, "mlClass": "AT_RISK", "graphScore": 6 }
+  ],
+  "links": [
+    { "source": "C_AlphaUser", "target": "M_SecurePay", "amount": 50.2, "step": 1, "fraud": false },
+    { "source": "C_BetaUser", "target": "M_GlobalCrypto", "amount": 500.0, "step": 2, "fraud": false },
+    { "source": "C_GammaFraudster", "target": "M_ShadowBroker", "amount": 1200.0, "step": 3, "fraud": true },
+    { "source": "C_BetaUser", "target": "M_ShadowBroker", "amount": 300.0, "step": 4, "fraud": true },
+    { "source": "C_GammaFraudster", "target": "M_GlobalCrypto", "amount": 950.0, "step": 5, "fraud": true },
+    { "source": "C_DeltaUser", "target": "M_EStoreLite", "amount": 12.5, "step": 6, "fraud": false },
+    { "source": "C_ZetaUser", "target": "M_GlobalCrypto", "amount": 420.0, "step": 7, "fraud": false },
+    { "source": "C_ZetaUser", "target": "M_ShadowBroker", "amount": 780.0, "step": 8, "fraud": true },
+    { "source": "C_EpsilonUser", "target": "M_SecurePay", "amount": 88.0, "step": 9, "fraud": false }
+  ]
+}

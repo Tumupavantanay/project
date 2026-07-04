@@ -1,0 +1,6 @@
+source,target,amount,timestamp
+acc_omega,acc_delta,15000.0,2026-07-04T19:55:00Z
+acc_alpha,acc_omega,6200.0,2026-07-04T19:56:00Z
+acc_beta,acc_epsilon,450.0,2026-07-04T19:57:00Z
+acc_gamma,acc_delta,9500.0,2026-07-04T19:58:00Z
+acc_omega,acc_alpha,120.0,2026-07-04T19:59:00Z
